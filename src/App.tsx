@@ -42,8 +42,10 @@ interface CustomWidget {
   size?: LayoutSizes;
 }
 
-const DEFAULT_WIDGET_STATE: CustomWidget[] = Object.keys(WIDGET_LAYOUTS).map(
-  (key): CustomWidget => ({ indentifier: key as WidgetIdentifiers })
+const DEFAULT_WIDGET_STATE: CustomWidget[] = R.pipe(
+  WIDGET_LAYOUTS,
+  R.keys,
+  R.map((key) => ({ indentifier: key as WidgetIdentifiers }))
 );
 
 export const App = () => {
@@ -62,7 +64,7 @@ export const App = () => {
   }, []);
 
   const boostrapLayout = useCallback(() => {
-    const initial = Object.entries(WIDGET_LAYOUTS).map(([key, values]) => ({
+    const initial = R.map(Object.entries(WIDGET_LAYOUTS), ([key, values]) => ({
       i: key,
       ...values[Object.keys(values).shift() as LayoutSizes],
     }));
