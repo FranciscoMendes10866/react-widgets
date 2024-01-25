@@ -1,11 +1,13 @@
 import "@fontsource/anek-telugu";
-import { useCallback, useEffect, useMemo } from "react";
-import GridLayout, { Layout } from "react-grid-layout";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Layouts, Layout, Responsive, WidthProvider } from "react-grid-layout";
 import useLocalStorage from "use-local-storage";
 import * as R from "remeda";
 
 import { NormalWidget } from "./components/NormalWidget";
 import { ResizableWidget } from "./components/ResizableWidget";
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
 
 export enum WidgetIdentifiers {
   PURCHASE = "purchase",
@@ -18,23 +20,24 @@ enum StorageKeys {
   LAYOUT = "layout",
 }
 
-type LayoutPropsOnly = Omit<Layout, "i">;
-export type LayoutSizes = "sm" | "lg";
+type LayoutsPropsOnly = Omit<Layout, "i">;
+export type LayoutSizes = "sm" | "md" | "lg";
 
 const WIDGET_LAYOUTS: Record<
   WidgetIdentifiers,
-  Partial<Record<LayoutSizes, LayoutPropsOnly>>
+  Partial<Record<LayoutSizes, LayoutsPropsOnly>>
 > = {
   purchase: {
-    sm: { x: 0, y: 0, w: 2, h: 2 },
+    sm: { x: 4, y: 0, w: 2, h: 2 },
   },
   transaction: {
     sm: { x: 4, y: 0, w: 2, h: 2 },
   },
-  earnings: {
-    sm: { x: 2, y: 0, w: 2, h: 2 },
-    lg: { x: 2, y: 0, w: 4, h: 2 },
-  },
+  // earnings: {
+  //   sm: { x: 2, y: 0, w: 2, h: 2 },
+  //   md: { x: 2, y: 0, w: 2, h: 2 },
+  //   lg: { x: 2, y: 0, w: 4, h: 2 },
+  // },
 };
 
 interface CustomWidget {
@@ -49,7 +52,7 @@ const DEFAULT_WIDGET_STATE: CustomWidget[] = R.pipe(
 );
 
 export const App = () => {
-  const [layout, setLayout] = useLocalStorage<Layout[] | undefined>(
+  const [layouts, setLayout] = useLocalStorage<Layouts | undefined>(
     StorageKeys.LAYOUT,
     undefined
   );
@@ -58,9 +61,11 @@ export const App = () => {
     DEFAULT_WIDGET_STATE
   );
 
+  const [breakpoint, setBreakpoint] = useState('lg')
+
   useEffect(() => {
-    if (layout) return;
-    boostrapLayout();
+    if (layouts) return;
+    // boostrapLayout();
   }, []);
 
   const boostrapLayout = useCallback(() => {
@@ -68,16 +73,23 @@ export const App = () => {
       i: key,
       ...values[Object.keys(values).shift() as LayoutSizes],
     }));
-    setLayout(initial as Layout[]);
+
+    console.log('**((((', initial)
+    // setLayout(initial as Layouts);
   }, []);
 
-  const onLayoutChange = useCallback((newLayout: Layout[]) => {
-    setLayout(newLayout);
+  const onLayoutChange = useCallback((currentLayout: ReactGridLayout.Layout[], allLayouts: Layouts) => {
+    console.log('[onLayoutChange]', {currentLayout, allLayouts})
+  }, []);
+
+  const onBreakpointChange = useCallback((newBreakpoint: string, newCols: number) => {
+    setBreakpoint(newBreakpoint);
+    console.log('[onBreakpointChange]', {newBreakpoint, newCols})
   }, []);
 
   const onWidgetUpdate = useCallback(
     (identifier: WidgetIdentifiers, size: LayoutSizes) => {
-      const layoutDeepCopy = R.clone(layout) ?? [];
+      const layoutDeepCopy = R.clone(layouts) ?? [];
 
       const updatedLayout = R.map(layoutDeepCopy, (elm) => {
         if (elm.i === identifier) {
@@ -99,7 +111,7 @@ export const App = () => {
       setWidgets(updatedWidgets);
       setLayout(updatedLayout);
     },
-    [layout, widgets]
+    [layouts, widgets]
   );
 
   const earningsProps = useMemo(
@@ -112,13 +124,14 @@ export const App = () => {
   );
 
   return (
-    <GridLayout
+    <ResponsiveGridLayout
       className="layout"
-      layout={layout}
-      cols={12}
+      layouts={layouts}
+      cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
       margin={[20, 20]}
       rowHeight={100}
-      width={1200}
+      width={window.innerWidth}
+      onBreakpointChange={onBreakpointChange}
       onLayoutChange={onLayoutChange}
     >
       <div key={WidgetIdentifiers.PURCHASE}>
@@ -137,6 +150,6 @@ export const App = () => {
           size={earningsProps?.size}
         />
       </div>
-    </GridLayout>
+    </ResponsiveGridLayout>
   );
 };
